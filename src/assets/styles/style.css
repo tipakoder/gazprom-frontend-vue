@@ -3,7 +3,10 @@
 :root {
     --accent: #0170B8;
     --accent-bg: #E2EAEF;
+    --accent-bg-dark: #d2e8f6;
     --gray: #F7F7F7;
+    --red: #D28686;
+    --green: #01B88C;
 }
 
 * {
@@ -26,6 +29,16 @@ header {
     grid-gap: 10px;
 
     width: 100%;
+}
+
+#auth {
+    position: absolute;
+    top: 8px;
+    right: 24px;
+
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--accent)
 }
 
 header .logotype {
@@ -98,15 +111,15 @@ main .table .row .cell {
 }
 
 main .table .row .cell.primary {
-    max-width: 100px;
+    max-width: 120px;
 
-    color: var(--accent);
-    background-color: var(--accent-bg);
+    color: #FFF;
+    background-color: var(--accent);
 }
 
 main .table .row .cell.busy {
     color: var(--accent);
-    background-color: var(--gray);
+    background-color: var(--accent-bg);
 }
 
 /* MODAL CONTAINER VIEW */
@@ -192,11 +205,11 @@ main .table .row .cell.busy {
 }
 
 #modal_container .content button.green {
-    background-color: #01B88C;
+    background-color: var(--green);
 }
 
 #modal_container .content button.red {
-    background-color: #D28686;
+    background-color: var(--red);
 }
 
 #modal_container .content input {
