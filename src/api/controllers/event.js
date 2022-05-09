@@ -26,3 +26,18 @@ export const exportTable = async (eventId) => {
         console.log("Ошибка получения файла");
     }
 }
+
+export const importTable = async (file) => {
+    const formData = new FormData();
+    formData.append("table", file);
+
+    const token = localStorage.getItem("token");
+    const response = await axios.post("/event/importTable", formData, {headers: {"Authorization": token}});
+
+    if (response.status === 200) {
+        return true;
+    } else {
+        alert (response.data.message);
+        return false;
+    }
+}

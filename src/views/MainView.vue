@@ -4,65 +4,73 @@
         v-if="this.modalView"
     >
         <div class="content">
-            <!-- Редактирование мероприятия -->
-            <template
-                v-if="this.timeEdit"
-            >
-                <h2>Редактирование собраний</h2>
-
-                <label>Дата и время</label>
-                <p>{{selectedTime.date}} {{selectedTime.time}}</p>
-
-                <label>Организатор</label>
-                <input 
-                    type="text" 
-                    placeholder="ФИО организатора" 
-                    :class="{
-                        empty: selectedTime.organizerName === ''
-                    }"
-                    v-model="selectedTime.organizerName"
+            <template v-if="this.timeModal">
+                <!-- Редактирование мероприятия -->
+                <template
+                    v-if="this.timeEdit && this.isLogined()"
                 >
+                    <h2>Редактирование собраний</h2>
 
-                <label>Участники</label>
-                <input
-                    v-for="(member, index) in selectedTime.eventMembers"
-                    :key="index"
-                    placeholder="ФИО участника"
-                    @input="(e) => {inputMember(e, index)}"
-                    :class="{
-                        empty: member.name === ''
-                    }"
-                    v-model="selectedTime.eventMembers[index].name"
-                />
+                    <label>Дата и время</label>
+                    <p>{{selectedTime.date}} {{selectedTime.time}}</p>
 
-                <label>Действия</label>
-                <button class="red">Удалить</button>
-                <button class="green">Экспортировать в файл</button>
-                <button class="blue">Сохранить</button>
+                    <label>Организатор</label>
+                    <input 
+                        type="text" 
+                        placeholder="ФИО организатора" 
+                        :class="{
+                            empty: selectedTime.organizerName === ''
+                        }"
+                        v-model="selectedTime.organizerName"
+                    >
+
+                    <label>Участники</label>
+                    <input
+                        v-for="(member, index) in selectedTime.eventMembers"
+                        :key="index"
+                        placeholder="ФИО участника"
+                        @input="(e) => {inputMember(e, index)}"
+                        :class="{
+                            empty: member.name === ''
+                        }"
+                        v-model="selectedTime.eventMembers[index].name"
+                    />
+
+                    <label>Действия</label>
+                    <button class="red" v-if="selectedTime.busy">Удалить</button>
+                    <button class="green">Экспортировать в файл</button>
+                    <button class="blue">Сохранить</button>
+                </template>
+
+                <!-- Просмотр мероприятия -->
+                <template
+                    v-else
+                >
+                    <h2>Просмтр собраний</h2>
+
+                    <label>Дата и время</label>
+                    <p>{{selectedTime.date}} {{selectedTime.time}}</p>
+
+                    <label>Организатор</label>
+                    <p>{{selectedTime.organizerName}}</p>
+
+                    <label>Участники</label>
+                    <p
+                        v-for="(member, index) in selectedTime.eventMembers"
+                        :key="index"
+                        v-text="member.name"
+                    />
+
+                    <label>Действия</label>
+                    <button class="green" @click="exportEvent(selectedTime.eventId)">Экспортировать в файл</button>
+                    <button class="blue" v-if="this.isLogined()" @click="timeEdit = true">Редактировать мероприятие</button>
+                </template>
             </template>
 
-            <!-- Просмотр мероприятия -->
-            <template
-                v-else
-            >
-                <h2>Просмтр собраний</h2>
-
-                <label>Дата и время</label>
-                <p>{{selectedTime.date}} {{selectedTime.time}}</p>
-
-                <label>Организатор</label>
-                <p>{{selectedTime.organizerName}}</p>
-
-                <label>Участники</label>
-                <p
-                    v-for="(member, index) in selectedTime.eventMembers"
-                    :key="index"
-                    v-text="member.name"
-                />
-
-                <label>Действия</label>
-                <button class="green" @click="exportEvent(selectedTime.eventId)">Экспортировать в файл</button>
-                <button class="blue">Редактировать мероприятие</button>
+            <template v-if="this.tableModal">
+                <h2>Импорт таблицы</h2>
+                <input type="file" id="import_table_input">
+                <button class="blue" @click="importEvents">Импортировать</button>
             </template>
         </div>
 
@@ -86,7 +94,10 @@
             </ul>
         </nav>
 
-        <a href="/login" id="auth">Войти как организатор</a>
+        <p id="auth">
+            <a href="/login" v-if="!this.isLogined()">Войти как организатор</a>
+            <a href="#" @click="openImportWindow()" v-if="this.isLogined()">Импортировать таблицу</a>
+        </p>
     </header>
 
     <main>
@@ -122,6 +133,7 @@
         name: "MainView",
 
         mounted () {
+            this.getAccount();
             this.updateMonthEvents();
         },
 
@@ -147,23 +159,46 @@
                 monthEvents: [],
 
                 selectedTime: {},
-                
-                logined: false,
 
                 timeEdit: false,
+                timeModal: false,
+                tableModal: false,
+                modalView: false,
 
-                modalView: false
+                account: {}
             }
         },
 
         methods: {
+            getAccount () {
+                const interval = setInterval(
+                    () => {
+                        const token = localStorage.getItem("token");
+                        
+                        if (token) {
+                            Api.account.get(token).then(({account}) => {
+                                this.account = account;
+                                clearInterval(interval);
+                            });
+                        }
+                    }, 
+                    500
+                )
+            },
+
+            isLogined() {
+                return Object.keys(this.account).length > 0;
+            },
+
             selectMonth (index) {
                 this.selectedMonth = index;
                 this.updateMonthEvents();
             },
 
             selectTime (time) {
-                console.log(time);
+                if (!this.isLogined() && !time.busy) {
+                    return alert("На выбранное время не запланировано мероприятие");
+                }
 
                 this.selectedTime = time.busy ? time : Object.assign(time, {
                     organizerName: "",
@@ -174,7 +209,9 @@
                     ],
                 });
 
-                this.timeEdit = !time.busy;
+                this.timeEdit = !time.busy && this.account !== {};
+                this.tableModal = false;
+                this.timeModal = true;
                 this.modalView = true;
             },
 
@@ -196,6 +233,23 @@
 
             exportEvent (eventIndex) {
                 Api.event.exportTable(eventIndex);
+            },
+
+            openImportWindow () {
+                this.timeModal = false;
+                this.tableModal = true;
+                this.modalView = true;
+            },
+
+            importEvents () {
+                const file = document.querySelector("#import_table_input").files[0];
+                if (file) {
+                    Api.event.importTable(file).then(() => {
+                        this.updateMonthEvents();
+                        this.tableModal = false;
+                        this.modalView = false;
+                    });
+                }
             }
         }
     };
