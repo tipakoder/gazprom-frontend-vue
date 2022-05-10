@@ -41,7 +41,8 @@ export const importTable = async (file) => {
         return false;
     }
 }
-export const create = async (organizerName,time,dateId,eventMembers) => {
+
+export const create = async (organizerName, time, dateId, eventMembers) => {
     const token = localStorage.getItem("token");
     const data = {
         organizerName,
@@ -50,6 +51,32 @@ export const create = async (organizerName,time,dateId,eventMembers) => {
         eventMembers
     }
     const response = await axios.post("/event/create", data, {headers: {"Authorization": token}});
+    if (response.status === 200) {
+        return true;
+    } else {
+        alert (response.data.message);
+        return false;
+    }
+}
+
+export const update = async (eventId, organizerName) => {
+    const token = localStorage.getItem("token");
+    const data = {
+        eventId,
+        organizerName
+    }
+    const response = await axios.put("/event/update", data, {headers: {"Authorization": token}});
+    if (response.status === 200) {
+        return true;
+    } else {
+        alert (response.data.message);
+        return false;
+    }
+}
+
+export const remove = async (eventId) => {
+    const token = localStorage.getItem("token");
+    const response = await axios.delete(`/event/remove?eventId=${eventId}`, {headers: {"Authorization": token}});
     if (response.status === 200) {
         return true;
     } else {

@@ -37,15 +37,22 @@
                     />
 
                     <label>Действия</label>
-                    <button class="red" v-if="selectedTime.busy">Удалить</button>
+                    <button 
+                        class="red" 
+                        v-if="selectedTime.busy"
+                        @click="removeEvent"
+                    >Удалить</button>
                     <button class="green" v-if="selectedTime.busy">Экспортировать в файл</button>
-                    <button class="blue" 
-                    @click="editEvent"
-                    v-if="selectedTime.busy"
-                    >Сохранить</button> 
-                    <button class="blue" 
-                    @click="createEvent"
-                    v-else
+                    <button 
+                        class="blue" 
+                        @click="editEvent"
+                        v-if="selectedTime.busy"
+                    >Сохранить</button>
+
+                    <button 
+                        class="blue" 
+                        @click="createEvent"
+                        v-else
                     >Сохранить</button> 
 
                 </template>
@@ -208,14 +215,21 @@
                     return alert("На выбранное время не запланировано мероприятие");
                 }
 
-                this.selectedTime = time.busy ? time : Object.assign(time, {
+                this.selectedTime = time.busy ? Object.assign(time, {
+                    removedMembers: [],
+                }) : Object.assign(time, {
                     organizerName: "",
+                    removedMembers: [],
                     eventMembers: [
                         {
                             name: ""
                         }
                     ],
                 });
+
+                if (time.busy) {
+                    this.selectedTime.eventMembers.push({name: ""});
+                }
 
                 this.timeEdit = !time.busy && this.account !== {};
                 this.tableModal = false;
@@ -224,13 +238,13 @@
             },
 
             inputMember(e, index){
-                
-                
                 if (e.target.value.length > 0 && (this.selectedTime.eventMembers.length - 1) === index) {
-                    this.selectedTime.eventMembers.push({name:""});
-                    console.log(this.selectedTime.eventMembers)
+                    this.selectedTime.eventMembers[index].edited = true;
+                    this.selectedTime.eventMembers.push({name: ""});
                 } else if (e.target.value.length === 0) {
-                    console.log("пошел нахуй");
+                    if (this.selectedTime.eventMembers[index].id) {
+                        this.selectedTime.removedMembers.push(this.selectedTime.eventMembers[index].id);
+                    }
                     this.selectedTime.eventMembers.splice(index, 1);
                 }
             },
@@ -261,6 +275,7 @@
                     });
                 }
             },
+
             createEvent(){
                 const organizerName = this.selectedTime.organizerName.trim();
                 const dateId = this.selectedTime.dateId;
@@ -277,17 +292,54 @@
                     this.modalView = false;
                 })
             },
-            editEvent(){
-                const eventMemberId = [];
-                const name = [];
-                for(let member of this.selectedTime.eventMembers){
-                    if(member.name.trim()==='') continue;
-                    name.push(member.name.trim());
+
+            async editEvent (){
+                const eventId = this.selectedTime.eventId;
+                const organizerName = this.selectedTime.organizerName.trim();
+
+                if (organizerName === "") {
+                    alert("Имя организатора пустое!");
                 }
-            console.log();
-            Api.eventMember.update(eventMemberId,name)
+
+                const updateEvent = await Api.event.update(eventId, organizerName);
+
+                if (updateEvent) {
+                    for(let member of this.selectedTime.eventMembers){
+                        if(
+                            member.name.trim() === '' ||
+                            this.selectedTime.eventMembers.filter(m => m.name === member.name).length > 1
+                        ) continue;
+
+                        if (member.id) {
+                            if (member.edited) 
+                                await Api.eventMember.update(member.id, member.name.trim());
+                        } else {
+                            await Api.eventMember.add(eventId, member.name.trim());
+                        }
+                    }
+
+                    for (let eventMemberId of this.selectedTime.removedMembers) {
+                        await Api.eventMember.remove(eventMemberId);
+                    }
+
+                    alert("Успешное изменение мероприятия!");
+                    this.updateMonthEvents();
+                    this.timeModal = false;
+                    this.tableModal = false;
+                    this.modalView = false;
+                }
+            },
+
+            removeEvent () {
+                const eventId = this.selectedTime.eventId;
+
+                Api.event.remove(eventId).then (() => {
+                    this.updateMonthEvents();
+                    this.timeModal = false;
+                    this.tableModal = false;
+                    this.modalView = false;
+                });
             }
-            
         }
     };
 </script>
