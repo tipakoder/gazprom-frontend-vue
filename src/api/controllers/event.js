@@ -41,3 +41,19 @@ export const importTable = async (file) => {
         return false;
     }
 }
+export const create = async (organizerName,time,dateId,eventMembers) => {
+    const token = localStorage.getItem("token");
+    const data = {
+        organizerName,
+        time,
+        dateId,
+        eventMembers
+    }
+    const response = await axios.post("/event/create", data, {headers: {"Authorization": token}});
+    if (response.status === 200) {
+        return true;
+    } else {
+        alert (response.data.message);
+        return false;
+    }
+}

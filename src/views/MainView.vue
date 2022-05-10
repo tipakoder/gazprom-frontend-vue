@@ -38,8 +38,16 @@
 
                     <label>Действия</label>
                     <button class="red" v-if="selectedTime.busy">Удалить</button>
-                    <button class="green">Экспортировать в файл</button>
-                    <button class="blue">Сохранить</button>
+                    <button class="green" v-if="selectedTime.busy">Экспортировать в файл</button>
+                    <button class="blue" 
+                    @click="editEvent"
+                    v-if="selectedTime.busy"
+                    >Сохранить</button> 
+                    <button class="blue" 
+                    @click="createEvent"
+                    v-else
+                    >Сохранить</button> 
+
                 </template>
 
                 <!-- Просмотр мероприятия -->
@@ -216,11 +224,13 @@
             },
 
             inputMember(e, index){
-                const isLast = (this.selectedTime.eventMembers.length - 1) === index;
                 
-                if (e.target.value.length > 0 && isLast) {
-                    this.selectedTime.eventMembers.push("");
+                
+                if (e.target.value.length > 0 && (this.selectedTime.eventMembers.length - 1) === index) {
+                    this.selectedTime.eventMembers.push({name:""});
+                    console.log(this.selectedTime.eventMembers)
                 } else if (e.target.value.length === 0) {
+                    console.log("пошел нахуй");
                     this.selectedTime.eventMembers.splice(index, 1);
                 }
             },
@@ -250,7 +260,34 @@
                         this.modalView = false;
                     });
                 }
+            },
+            createEvent(){
+                const organizerName = this.selectedTime.organizerName.trim();
+                const dateId = this.selectedTime.dateId;
+                const time = this.selectedTime.time.trim();
+                const eventMembers = [];
+                for(let member of this.selectedTime.eventMembers){
+                    if(member.name.trim()==='') continue;
+                    eventMembers.push(member.name.trim());
+                }
+                Api.event.create(organizerName,time,dateId,eventMembers).then(()=>{
+                    this.updateMonthEvents();
+                    this.timeModal = false;
+                    this.tableModal = false;
+                    this.modalView = false;
+                })
+            },
+            editEvent(){
+                const eventMemberId = [];
+                const name = [];
+                for(let member of this.selectedTime.eventMembers){
+                    if(member.name.trim()==='') continue;
+                    name.push(member.name.trim());
+                }
+            console.log();
+            Api.eventMember.update(eventMemberId,name)
             }
+            
         }
     };
 </script>
